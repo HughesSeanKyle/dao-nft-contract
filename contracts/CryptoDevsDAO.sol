@@ -28,6 +28,45 @@ contract CryptoDevsDAO is Ownable {
 
     IFakeNFTMarketplace nftMarketplace;
     ICryptoDevsNFT cryptoDevsNFT;
+
+    // a payable constructor which initializes the contract
+    // instances for FakeNFTMarketplace and CryptoDevsNFT
+    // The payable allows this constructor to accept an ETH deposit when it is being deployed
+    constructor(address _nftMarketplace, address _cryptoDevsNFT) payable {
+        nftMarketplace = IFakeNFTMarketplace(_nftMarketplace);
+        cryptoDevsNFT = ICryptoDevsNFT(_cryptoDevsNFT);
+    }
+
+    // a modifier which only allows a function to be
+    // called by someone who owns at least 1 CryptoDevsNFT
+    // Avoid code duplications with modifiers
+    modifier nftHolderOnly() {
+        require(cryptoDevsNFT.balanceOf(msg.sender) > 0, "NOT_A_DAO_MEMBER");
+        _;
+    }
+
+    /// @dev createProposal allows a CryptoDevsNFT holder to create a new proposal in the DAO
+    /// @param _nftTokenId - the tokenID of the NFT to be purchased from FakeNFTMarketplace if this proposal passes
+    /// @return Returns the proposal index for the newly created proposal
+    function createProposal(uint256 _nftTokenId)
+        external
+        nftHolderOnly
+        returns (uint256)
+    {
+        require(nftMarketplace.available(_nftTokenId), "NFT_NOT_FOR_SALE");
+        // Fetch the proposal struct at a particular index in mapping and persist the updated instance props of proposal to blockchain via storage
+        Proposal storage proposal = proposals[numProposals];
+        proposal.nftTokenId = _nftTokenId;
+        // Set the proposal's voting deadline to be (current time + 5 minutes)
+        proposal.deadline = block.timestamp + 5 minutes;
+
+        // This var is maintained in the state of the contract. After each user (With nft) creates proposal then update var
+        // Can be thought of as auto increment feature when persisting to db
+        numProposals++;
+
+        // Subtract one as mapping idx starts at 0
+        return numProposals - 1;
+    }
 }
 
 /**
