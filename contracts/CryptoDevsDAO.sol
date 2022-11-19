@@ -25,6 +25,9 @@ contract CryptoDevsDAO is Ownable {
     mapping(uint256 => Proposal) public proposals;
     // Number of proposals that have been created
     uint256 public numProposals;
+
+    IFakeNFTMarketplace nftMarketplace;
+    ICryptoDevsNFT cryptoDevsNFT;
 }
 
 /**
