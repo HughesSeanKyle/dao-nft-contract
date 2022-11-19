@@ -29,9 +29,11 @@ contract CryptoDevsDAO is Ownable {
     IFakeNFTMarketplace nftMarketplace;
     ICryptoDevsNFT cryptoDevsNFT;
 
+    // YAY = 0
+    // NAY = 1
     enum Vote {
-        YAY, // YAY = 0
-        NAY // NAY = 1
+        YAY,
+        NAY
     }
 
     // a payable constructor which initializes the contract
@@ -58,6 +60,22 @@ contract CryptoDevsDAO is Ownable {
         require(
             proposals[proposalIndex].deadline > block.timestamp,
             "DEADLINE_EXCEEDED"
+        );
+        _;
+    }
+
+    // Create a modifier which only allows a function to be
+    // called if the given proposals' deadline HAS been exceeded
+    // and if the proposal has not yet been executed
+    // require that a proposal be inactive and that it's status still be unexecuted.
+    modifier inactiveProposalOnly(uint256 proposalIndex) {
+        require(
+            proposals[proposalIndex].deadline <= block.timestamp,
+            "DEADLINE_NOT_EXCEEDED"
+        );
+        require(
+            proposals[proposalIndex].executed == false,
+            "PROPOSAL_ALREADY_EXECUTED"
         );
         _;
     }
@@ -123,6 +141,26 @@ contract CryptoDevsDAO is Ownable {
         } else {
             proposal.nayVotes += numVotes;
         }
+    }
+
+    /// @dev executeProposal allows any CryptoDevsNFT holder to execute a proposal after it's deadline has been exceeded
+    /// @param proposalIndex - the index of the proposal to execute in the proposals array
+    function executeProposal(uint256 proposalIndex)
+        external
+        nftHolderOnly
+        inactiveProposalOnly(proposalIndex)
+    {
+        Proposal storage proposal = proposals[proposalIndex];
+
+        // If the proposal has more YAY votes than NAY votes
+        // purchase the NFT from the FakeNFTMarketplace
+        if (proposal.yayVotes > proposal.nayVotes) {
+            uint256 nftPrice = nftMarketplace.getPrice();
+            require(address(this).balance >= nftPrice, "NOT_ENOUGH_FUNDS");
+            // pass TokenId as arg
+            nftMarketplace.purchase{value: nftPrice}(proposal.nftTokenId);
+        }
+        proposal.executed = true;
     }
 }
 
