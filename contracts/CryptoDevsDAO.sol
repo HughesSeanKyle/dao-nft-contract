@@ -29,6 +29,11 @@ contract CryptoDevsDAO is Ownable {
     IFakeNFTMarketplace nftMarketplace;
     ICryptoDevsNFT cryptoDevsNFT;
 
+    enum Vote {
+        YAY, // YAY = 0
+        NAY // NAY = 1
+    }
+
     // a payable constructor which initializes the contract
     // instances for FakeNFTMarketplace and CryptoDevsNFT
     // The payable allows this constructor to accept an ETH deposit when it is being deployed
@@ -42,6 +47,18 @@ contract CryptoDevsDAO is Ownable {
     // Avoid code duplications with modifiers
     modifier nftHolderOnly() {
         require(cryptoDevsNFT.balanceOf(msg.sender) > 0, "NOT_A_DAO_MEMBER");
+        _;
+    }
+
+    // Create a modifier which only allows a function to be
+    // called if the given proposal's deadline has not been exceeded yet
+    modifier activeProposalOnly(uint256 proposalIndex) {
+        // block.timestamp == current time
+
+        require(
+            proposals[proposalIndex].deadline > block.timestamp,
+            "DEADLINE_EXCEEDED"
+        );
         _;
     }
 
@@ -66,6 +83,46 @@ contract CryptoDevsDAO is Ownable {
 
         // Subtract one as mapping idx starts at 0
         return numProposals - 1;
+    }
+
+    /// @dev voteOnProposal allows a CryptoDevsNFT holder to cast their vote on an active proposal
+    /// @param proposalIndex - the index of the proposal to vote on in the proposals array
+    /// @param vote - the type of vote they want to cast
+    function voteOnProposal(uint256 proposalIndex, Vote vote)
+        external
+        nftHolderOnly
+        activeProposalOnly(proposalIndex)
+    {
+        Proposal storage proposal = proposals[proposalIndex];
+
+        uint256 voterNFTBalance = cryptoDevsNFT.balanceOf(msg.sender);
+        uint256 numVotes = 0;
+
+        // Calculate how many NFTs are owned by the voter
+        // that haven't already been used for voting on this proposal
+        /*
+            Note that mappings are zero based so "i < voterNFTBalance" && "i <= voterNFTBalance"
+        */
+        for (uint256 i = 0; i < voterNFTBalance; i++) {
+            uint256 tokenId = cryptoDevsNFT.tokenOfOwnerByIndex(msg.sender, i);
+            if (proposal.voters[tokenId] == false) {
+                numVotes++;
+                proposal.voters[tokenId] = true;
+            }
+        }
+        // numVotes must be > 0 in order to vote. numVotes will only be set if respective tokenId has false bool
+        // if the respective token does not have the false bool then numVotes will not be set and the require statment below will trigger
+        // if require is triggered entire function is rolled back.
+        require(numVotes > 0, "ALREADY_VOTED");
+
+        // Enum can either be YAY or NAY.
+        // Vote.YAY || Vote.NAY will be entered as an arg
+        // Num votes will be 1 either way if tokenId is false and will not reach this line if true
+        if (vote == Vote.YAY) {
+            proposal.yayVotes += numVotes;
+        } else {
+            proposal.nayVotes += numVotes;
+        }
     }
 }
 
