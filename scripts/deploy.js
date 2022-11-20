@@ -21,7 +21,7 @@ async function main() {
 	// 2. deploy the instance
 	/*
     Point the dao to the fakeNftMarketPlace
-    CRYPTODEVS_NFT_CONTRACT_ADDRESS to determine which addresses are eligible to vote/participate in dao 
+    CRYPTODEVS_NFT_CONTRACT_ADDRESS to determine which addresses are eligible to vote/participate in dao
   */
 	const cryptoDevsDAO = await CryptoDevsDAO.deploy(
 		fakeNftMarketplace.address,
