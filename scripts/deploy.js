@@ -1,31 +1,47 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
-const hre = require("hardhat");
+const { ethers } = require('hardhat');
+const { CRYPTODEVS_NFT_CONTRACT_ADDRESS } = require('../constants');
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+	// Deploy the FakeNFTMarketplace contract first
+	// 1. Create the instance
+	const FakeNFTMarketplace = await ethers.getContractFactory(
+		'FakeNFTMarketplace'
+	);
+	// 2. deploy the instance
+	const fakeNftMarketplace = await FakeNFTMarketplace.deploy();
+	// 3. Confirm instance deployment
+	await fakeNftMarketplace.deployed();
 
-  const lockedAmount = hre.ethers.utils.parseEther("1");
+	// Deployed contract address fakeNFTMarketPlace
+	console.log('FakeNFTMarketplace deployed to: ', fakeNftMarketplace.address);
 
-  const Lock = await hre.ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+	// Now deploy the CryptoDevsDAO contract
+	// 1. Create the instance
+	const CryptoDevsDAO = await ethers.getContractFactory('CryptoDevsDAO');
+	// 2. deploy the instance
+	/*
+    Point the dao to the fakeNftMarketPlace
+    CRYPTODEVS_NFT_CONTRACT_ADDRESS to determine which addresses are eligible to vote/participate in dao
+  */
+	const cryptoDevsDAO = await CryptoDevsDAO.deploy(
+		fakeNftMarketplace.address,
+		CRYPTODEVS_NFT_CONTRACT_ADDRESS,
+		{
+			// This assumes your account has at least 1 ETH in it's account
+			// Change this value as you want. Initial value to fund DAO
+			value: ethers.utils.parseEther('0.01'),
+		}
+	);
+	// 3. Confirm instance deployment
+	await cryptoDevsDAO.deployed();
 
-  await lock.deployed();
-
-  console.log(
-    `Lock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
-  );
+	// Deployed contract address cryptoDao
+	console.log('CryptoDevsDAO deployed to: ', cryptoDevsDAO.address);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+	.then(() => process.exit(0))
+	.catch((error) => {
+		console.error(error);
+		process.exit(1);
+	});
