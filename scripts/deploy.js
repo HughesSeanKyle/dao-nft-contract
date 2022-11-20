@@ -29,7 +29,7 @@ async function main() {
 		{
 			// This assumes your account has at least 1 ETH in it's account
 			// Change this value as you want. Initial value to fund DAO
-			value: ethers.utils.parseEther('0.01'),
+			value: ethers.utils.parseEther('0.001'),
 		}
 	);
 	// 3. Confirm instance deployment

@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 /*
     Deployed via remix 
     - Address => 0x8fb5d258839d4db60a30cbb1c2d83c6a336914be
+
+    Deployed via hardhat 
+    - Address => 0x0024cCd6f50b8f9bEaD622D230224D84c8712823
 */
 
 contract FakeNFTMarketplace {
